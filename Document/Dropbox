@@ -1,0 +1,24 @@
+//SETUP sdk
+Download sdk and copy what in their libs into your libs, then syns projectt
+
+//SETUP app_id, app_secret
+you need
+App_id
+App_secret
+
+Set App_id, App_secret as variable in class because you will need them
+In manifest.xml, add an activity
+        <activity
+            android:name="com.dropbox.client2.android.AuthActivity"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|keyboard">
+            <intent-filter>
+                <!-- Change this to be db- followed by your app key -->
+                <data android:scheme="db-Your APP_ID" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+and permission to access internet
+    <uses-permission android:name="android.permission.INTERNET"/>

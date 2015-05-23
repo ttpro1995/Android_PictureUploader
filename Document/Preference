@@ -1,0 +1,15 @@
+//declare
+SharedPreferences prefs;
+SharedPreferences.Editor editor;
+
+//init
+prefs = PreferenceManager.getDefaultSharedPreferences(this);
+editor = prefs.edit();
+
+ //testing
+        editor.putString("testing", "keep calm and mewo on"); // put string into prefs
+        editor.commit();//remember to commit
+        String test= prefs.getString("testing",""); // read string
+        Log.d("TestPrefs",test);
+        Log.i("TestPrefs",test);
+        Log.i("fuck","get your fuck up "+test);

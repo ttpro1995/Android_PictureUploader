@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">PictureUploader</string>
+
+    <string name="hello_world">Hello world!</string>
+    
+    <string name="action_settings">Settings</string>
+    <string name="action_account_manager">Account</string>
+    
+    <string name="title_activity_login">LoginActivity</string>
+
+    <string name="login_dropbox">Login Dropbox</string>
+
+    <string name="prefs_dropbox_token">Dropbox_Access_Token</string>
+    
+
+</resources>
