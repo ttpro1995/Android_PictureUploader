@@ -2,9 +2,12 @@ package com.hahattpro.pictureuploader;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,8 +19,15 @@ import android.widget.ImageView;
 
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
+import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
+import com.hahattpro.pictureuploader.StaticField.Dir;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -31,6 +41,7 @@ public class MainActivity extends ActionBarActivity {
     SharedPreferences.Editor editor;
 
     private int SELECT_PICTURE=1;//select picture request code
+    Uri pic_uri=null;
 
     //view
     ImageView imageView;
@@ -67,7 +78,7 @@ public class MainActivity extends ActionBarActivity {
         buttonUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new LoginDropbox().execute();
+                new LoginDropboxAndUpload().execute();
             }
         });
     }
@@ -147,7 +158,7 @@ public class MainActivity extends ActionBarActivity {
         {
             //show picture you  selected
             if (data!=null) {
-                Uri pic_uri = data.getData();
+                 pic_uri = data.getData();
                 imageView.setImageURI(pic_uri);
             }
         }
@@ -167,9 +178,36 @@ public class MainActivity extends ActionBarActivity {
         return session;
     }
 
+    //get file name from uri
+    private String getFileName(Uri contentURI) {
+        //https://developer.android.com/training/secure-file-sharing/retrieve-info.html
+        Uri returnUri = pic_uri;
+        Cursor returnCursor =
+                getContentResolver().query(returnUri, null, null, null, null);
+        int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+        int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
+        returnCursor.moveToFirst();
+        String file_name =  returnCursor.getString(nameIndex);
+        returnCursor.close();
+        return file_name;
+    }
 
-    //open browser, login, ask for permission
-    private class LoginDropbox extends AsyncTask<Void,Void,Void>
+    //get file size from uri
+    private long getFileSize(Uri contentURI) {
+        //https://developer.android.com/training/secure-file-sharing/retrieve-info.html
+        Uri returnUri = pic_uri;
+        Cursor returnCursor =
+                getContentResolver().query(returnUri, null, null, null, null);
+        int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+        int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
+        returnCursor.moveToFirst();
+       long file_size = returnCursor.getLong(sizeIndex);
+        returnCursor.close();
+        return file_size;
+    }
+
+    //open browser, login, ask for permission then upload
+    private class LoginDropboxAndUpload extends AsyncTask<Void,Void,Void>
     {
         @Override
         protected Void doInBackground(Void... params) {
@@ -193,8 +231,49 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            new UploadPicture_Dropbox().execute();
         }
     }
 
+    //Upload select picture (which is shown on image view to dropbox
+    private class UploadPicture_Dropbox extends AsyncTask<Void,Void,Void>
+    {
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
+
+                //File file = new File(getRealPathFromURI(pic_uri));
+                InputStream is = getContentResolver().openInputStream(pic_uri);
+
+                Log.i(LOG_TAG,"File name = "+getFileName(pic_uri));
+                Log.i(LOG_TAG,"File size = "+getFileSize(pic_uri));
+
+                //upload to dropbox
+                Dropbox_mApi.putFile(Dir.PICTURE_DIR+getFileName(pic_uri)
+                ,is
+                ,getFileSize(pic_uri)
+                ,null
+                ,null);
+            }
+           catch (FileNotFoundException e)
+           {
+               Log.e(LOG_TAG,"FILE_NOT_FOUND");
+           }
+            catch (DropboxException e)
+            {
+                Log.e(LOG_TAG,"DROPBOX_ERROR");
+            }
+
+
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            Log.i(LOG_TAG,"Dropbox Upload Complete");
+        }
+    }
 
 }
