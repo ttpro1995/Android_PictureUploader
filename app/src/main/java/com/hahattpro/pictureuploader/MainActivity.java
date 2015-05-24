@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
@@ -34,6 +35,7 @@ public class MainActivity extends ActionBarActivity {
 
     private String LOG_TAG=MainActivity.class.getSimpleName();
 
+
     DropboxAPI<AndroidAuthSession> Dropbox_mApi=null;
     private String Dropbox_token=null;
 
@@ -47,7 +49,7 @@ public class MainActivity extends ActionBarActivity {
     ImageView imageView;
     Button buttonSelect;
     Button buttonUpload;
-
+    TextView textStatus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +59,7 @@ public class MainActivity extends ActionBarActivity {
         imageView = (ImageView) findViewById(R.id.imageview1);
         buttonSelect = (Button) findViewById(R.id.button_select);
         buttonUpload = (Button) findViewById(R.id.button_upload);
+        textStatus = (TextView) findViewById(R.id.textStatus);
 
         //init prefs which is used to store access token
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -210,6 +213,13 @@ public class MainActivity extends ActionBarActivity {
     private class LoginDropboxAndUpload extends AsyncTask<Void,Void,Void>
     {
         @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            textStatus.setText("Status: Uploading");
+
+        }
+
+        @Override
         protected Void doInBackground(Void... params) {
             //get token
             Dropbox_token = prefs.getString(getResources().getString(R.string.prefs_dropbox_token),null);
@@ -231,6 +241,8 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+
+            if (Dropbox_mApi.getSession().isLinked())
             new UploadPicture_Dropbox().execute();
         }
     }
@@ -238,6 +250,7 @@ public class MainActivity extends ActionBarActivity {
     //Upload select picture (which is shown on image view to dropbox
     private class UploadPicture_Dropbox extends AsyncTask<Void,Void,Void>
     {
+        private boolean error = false;
         @Override
         protected Void doInBackground(Void... voids) {
             try {
@@ -258,22 +271,31 @@ public class MainActivity extends ActionBarActivity {
            catch (FileNotFoundException e)
            {
                Log.e(LOG_TAG,"FILE_NOT_FOUND");
+               error=true;
            }
             catch (DropboxException e)
             {
                 Log.e(LOG_TAG,"DROPBOX_ERROR");
+                error=true;
             }
-
-
-
+            catch (Exception e)
+            {
+                Log.e(LOG_TAG,"Some thing error");
+                e.printStackTrace();
+                error=true;
+            }
             return null;
         }
 
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
-            Log.i(LOG_TAG,"Dropbox Upload Complete");
+            Log.i(LOG_TAG, "Dropbox Upload Complete");
+
+            if (error)
+                textStatus.setText("error");
+            else
+            textStatus.setText("Upload Complete");
         }
     }
-
 }

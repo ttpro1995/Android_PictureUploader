@@ -18,7 +18,7 @@ import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 
 
 public class LoginActivity extends ActionBarActivity {
-
+    private String LOG_TAG=LoginDropbox.class.getSimpleName();
 
     DropboxAPI<AndroidAuthSession> Dropbox_mApi=null;
     private String Dropbox_token=null;
@@ -67,8 +67,10 @@ public class LoginActivity extends ActionBarActivity {
         super.onResume();
         UpdateUI();
         //auto login if have access token
-        if (Dropbox_token!= null)
+        if (Dropbox_token!= null) {
+            Log.i(LOG_TAG,"start login");
             new LoginDropbox().execute();
+        }
 
         if (Dropbox_mApi!=null)
         if (Dropbox_mApi.getSession().authenticationSuccessful()) {
@@ -130,7 +132,7 @@ public class LoginActivity extends ActionBarActivity {
     {
         @Override
         protected Void doInBackground(Void... params) {
-
+            Log.i("DbAuthLog", "start authenticating");
             Dropbox_token=prefs.getString(getResources().getString(R.string.prefs_dropbox_token),null);
 
             // bind APP_KEY and APP_SECRET with session
@@ -151,18 +153,21 @@ public class LoginActivity extends ActionBarActivity {
             if (Dropbox_mApi.getSession().authenticationSuccessful()) {
                 try {
                     Dropbox_mApi.getSession().finishAuthentication();
-                    UpdateUI();
+
                 } catch (IllegalStateException e) {
                     Log.i("DbAuthLog", "Error authenticating", e);
                 }
             }
+            Log.i("DbAuthLog","Done async task");
+            Log.i("DbAuthLog","is link "+Dropbox_mApi.getSession().isLinked() );
+            UpdateUI();//work here
         }
     }
 
     //show status of account button
     private void UpdateUI()
     {
-        if (Dropbox_mApi!=null &&Dropbox_mApi.getSession().isLinked())
+        if (Dropbox_mApi!=null && Dropbox_mApi.getSession().isLinked())
             buttonLoginDropbox.setText("Unlink Dropbox");
         else
             buttonLoginDropbox.setText("Login Dropbox");
