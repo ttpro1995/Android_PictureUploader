@@ -5,11 +5,10 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,31 +24,26 @@ import com.dropbox.client2.session.AppKeyPair;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 import com.hahattpro.pictureuploader.StaticField.Dir;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 
 public class MainActivity extends ActionBarActivity {
 
-    private String LOG_TAG=MainActivity.class.getSimpleName();
-
-
-    DropboxAPI<AndroidAuthSession> Dropbox_mApi=null;
-    private String Dropbox_token=null;
-
+    DropboxAPI<AndroidAuthSession> Dropbox_mApi = null;
     SharedPreferences prefs;
     SharedPreferences.Editor editor;
-
-    private int SELECT_PICTURE=1;//select picture request code
-    Uri pic_uri=null;
-
+    Uri pic_uri = null;
     //view
     ImageView imageView;
     Button buttonSelect;
     Button buttonUpload;
     TextView textStatus;
+    // flag
+    boolean error_Dropbox = false;
+    private String LOG_TAG = MainActivity.class.getSimpleName();
+    private String Dropbox_token = null;
+    private int SELECT_PICTURE = 1;//select picture request code
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,15 +54,11 @@ public class MainActivity extends ActionBarActivity {
         buttonSelect = (Button) findViewById(R.id.button_select);
         buttonUpload = (Button) findViewById(R.id.button_upload);
         textStatus = (TextView) findViewById(R.id.textStatus);
+        buttonUpload.setEnabled(false);
 
         //init prefs which is used to store access token
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         editor = prefs.edit();
-
-
-
-
-
 
 
         buttonSelect.setOnClickListener(new View.OnClickListener() {
@@ -96,8 +86,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     //go to activity where you will login, get access token
-    private void GoToAccountManager()
-    {
+    private void GoToAccountManager() {
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         startActivity(intent);
     }
@@ -107,23 +96,23 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
 
-        if (Dropbox_mApi!=null)
-        if (Dropbox_mApi.getSession().authenticationSuccessful()) {
-            try {
-                // Required to complete auth, sets the access token on the session
-                Dropbox_mApi.getSession().finishAuthentication();
-                String ACCESS_TOKEN = Dropbox_mApi.getSession().getOAuth2AccessToken();
-                editor.putString(getResources().getString(R.string.prefs_dropbox_token), ACCESS_TOKEN);//put access token into prefs
-                editor.commit();//remember to commit or it will not work
-                Log.i("dropbox_token",prefs.getString(getResources().getString(R.string.prefs_dropbox_token),null));
-                 //accessToken should be save somewhere
-                //TODO: accessToken ?
-                Log.i("DbAuthLog", "Login successful");
+        if (Dropbox_mApi != null)
+            if (Dropbox_mApi.getSession().authenticationSuccessful()) {
+                try {
+                    // Required to complete auth, sets the access token on the session
+                    Dropbox_mApi.getSession().finishAuthentication();
+                    String ACCESS_TOKEN = Dropbox_mApi.getSession().getOAuth2AccessToken();
+                    editor.putString(getResources().getString(R.string.prefs_dropbox_token), ACCESS_TOKEN);//put access token into prefs
+                    editor.commit();//remember to commit or it will not work
+                    Log.i("dropbox_token", prefs.getString(getResources().getString(R.string.prefs_dropbox_token), null));
+                    //accessToken should be save somewhere
+                    //TODO: accessToken ?
+                    Log.i("DbAuthLog", "Login successful");
 
-            } catch (IllegalStateException e) {
-                Log.i("DbAuthLog", "Error authenticating", e);
+                } catch (IllegalStateException e) {
+                    Log.i("DbAuthLog", "Error authenticating", e);
+                }
             }
-        }
     }
 
     @Override
@@ -144,8 +133,7 @@ public class MainActivity extends ActionBarActivity {
         if (id == R.id.action_settings) {
             return true;
         }
-        if (id == R.id.action_account_manager)
-        {
+        if (id == R.id.action_account_manager) {
             GoToAccountManager();
             return true;
         }
@@ -157,12 +145,13 @@ public class MainActivity extends ActionBarActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode==SELECT_PICTURE)
-        {
+        if (requestCode == SELECT_PICTURE) {
             //show picture you  selected
-            if (data!=null) {
-                 pic_uri = data.getData();
+            if (data != null) {
+                pic_uri = data.getData();
                 imageView.setImageURI(pic_uri);
+                if (pic_uri != null)
+                    buttonUpload.setEnabled(true);
             }
         }
 
@@ -171,12 +160,11 @@ public class MainActivity extends ActionBarActivity {
     ///////>>>>>>HELPER FUNCTION<<<<<<///////////////////
 
     //build AndroidAuthSession
-    private AndroidAuthSession buildSession()
-    {
+    private AndroidAuthSession buildSession() {
         // APP_KEY and APP_SECRET goes here
-        AppKeyPair appKeyPair= new AppKeyPair(AppIDandSecret.AppID_Dropbox,AppIDandSecret.Secret_Dropbox);
+        AppKeyPair appKeyPair = new AppKeyPair(AppIDandSecret.AppID_Dropbox, AppIDandSecret.Secret_Dropbox);
 
-        AndroidAuthSession session = new AndroidAuthSession(appKeyPair,Dropbox_token);
+        AndroidAuthSession session = new AndroidAuthSession(appKeyPair, Dropbox_token);
 
         return session;
     }
@@ -190,7 +178,7 @@ public class MainActivity extends ActionBarActivity {
         int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
         int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
         returnCursor.moveToFirst();
-        String file_name =  returnCursor.getString(nameIndex);
+        String file_name = returnCursor.getString(nameIndex);
         returnCursor.close();
         return file_name;
     }
@@ -204,37 +192,38 @@ public class MainActivity extends ActionBarActivity {
         int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
         int sizeIndex = returnCursor.getColumnIndex(OpenableColumns.SIZE);
         returnCursor.moveToFirst();
-       long file_size = returnCursor.getLong(sizeIndex);
+        long file_size = returnCursor.getLong(sizeIndex);
         returnCursor.close();
         return file_size;
     }
 
-    //open browser, login, ask for permission then upload
-    private class LoginDropboxAndUpload extends AsyncTask<Void,Void,Void>
-    {
+    //set token to Dropbox_mApi
+    private class LoginDropboxAndUpload extends AsyncTask<Void, Void, Void> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
             textStatus.setText("Status: Uploading");
-
         }
 
         @Override
         protected Void doInBackground(Void... params) {
             //get token
-            Dropbox_token = prefs.getString(getResources().getString(R.string.prefs_dropbox_token),null);
+            Dropbox_token = prefs.getString(getResources().getString(R.string.prefs_dropbox_token), null);
             // bind APP_KEY and APP_SECRET with session and Access token
             AndroidAuthSession session = buildSession();
             Dropbox_mApi = new DropboxAPI<AndroidAuthSession>(session);
 
-            if (Dropbox_token!=null)
+            if (Dropbox_token != null)
                 Dropbox_mApi.getSession().setOAuth2AccessToken(Dropbox_token);
 
-            if (Dropbox_token==null)
-            Dropbox_mApi.getSession().startOAuth2Authentication(MainActivity.this);
-
+            if (Dropbox_token == null) {
+                //dropbox not link because token is null
+                // Login at Login Activity
+                error_Dropbox = true;
+                Log.e(LOG_TAG, "Dropbox is not linked");
+            }
             if (Dropbox_mApi.getSession().isLinked())
-                Log.i(LOG_TAG,"Dropbox is Link");
+                Log.i(LOG_TAG, "Dropbox is Link");
             return null;
         }
 
@@ -243,14 +232,22 @@ public class MainActivity extends ActionBarActivity {
             super.onPostExecute(aVoid);
 
             if (Dropbox_mApi.getSession().isLinked())
-            new UploadPicture_Dropbox().execute();
+                new UploadPicture_Dropbox().execute();
+
+            if (error_Dropbox) {
+                String tmp = "Dropbox Upload Error. ";
+                if (Dropbox_token == null) {
+                    tmp = tmp + "Dropbox is not linked";
+                }
+                textStatus.setText(tmp);
+            }
+
         }
     }
 
     //Upload select picture (which is shown on image view to dropbox
-    private class UploadPicture_Dropbox extends AsyncTask<Void,Void,Void>
-    {
-        private boolean error = false;
+    private class UploadPicture_Dropbox extends AsyncTask<Void, Void, Void> {
+
         @Override
         protected Void doInBackground(Void... voids) {
             try {
@@ -258,31 +255,26 @@ public class MainActivity extends ActionBarActivity {
                 //File file = new File(getRealPathFromURI(pic_uri));
                 InputStream is = getContentResolver().openInputStream(pic_uri);
 
-                Log.i(LOG_TAG,"File name = "+getFileName(pic_uri));
-                Log.i(LOG_TAG,"File size = "+getFileSize(pic_uri));
+                Log.i(LOG_TAG, "File name = " + getFileName(pic_uri));
+                Log.i(LOG_TAG, "File size = " + getFileSize(pic_uri));
 
                 //upload to dropbox
-                Dropbox_mApi.putFile(Dir.PICTURE_DIR+getFileName(pic_uri)
-                ,is
-                ,getFileSize(pic_uri)
-                ,null
-                ,null);
-            }
-           catch (FileNotFoundException e)
-           {
-               Log.e(LOG_TAG,"FILE_NOT_FOUND");
-               error=true;
-           }
-            catch (DropboxException e)
-            {
-                Log.e(LOG_TAG,"DROPBOX_ERROR");
-                error=true;
-            }
-            catch (Exception e)
-            {
-                Log.e(LOG_TAG,"Some thing error");
+                Dropbox_mApi.putFile(Dir.PICTURE_DIR + getFileName(pic_uri)
+                        , is
+                        , getFileSize(pic_uri)
+                        , null
+                        , null);
+            } catch (FileNotFoundException e) {
+                Log.e(LOG_TAG, "FILE_NOT_FOUND");
+                error_Dropbox = true;
+            } catch (DropboxException e) {
+                Log.e(LOG_TAG, "DROPBOX_ERROR");
+                error_Dropbox = true;
+            } catch (NullPointerException e) {
+                Log.e(LOG_TAG, "no picture is selected");
                 e.printStackTrace();
-                error=true;
+                error_Dropbox = true;
+
             }
             return null;
         }
@@ -292,10 +284,10 @@ public class MainActivity extends ActionBarActivity {
             super.onPostExecute(aVoid);
             Log.i(LOG_TAG, "Dropbox Upload Complete");
 
-            if (error)
-                textStatus.setText("error");
+            if (error_Dropbox)
+                textStatus.setText("Dropbox Error");
             else
-            textStatus.setText("Upload Complete");
+                textStatus.setText("Dropbox Upload Complete");
         }
     }
 }

@@ -2,9 +2,9 @@ package com.hahattpro.pictureuploader;
 
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,15 +18,12 @@ import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 
 
 public class LoginActivity extends ActionBarActivity {
-    private String LOG_TAG=LoginDropbox.class.getSimpleName();
-
     DropboxAPI<AndroidAuthSession> Dropbox_mApi=null;
-    private String Dropbox_token=null;
-
     SharedPreferences prefs;
     SharedPreferences.Editor editor;
-
     Button buttonLoginDropbox;
+    private String LOG_TAG = LoginDropbox.class.getSimpleName();
+    private String Dropbox_token = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,12 +48,13 @@ public class LoginActivity extends ActionBarActivity {
                 if (Dropbox_mApi!=null &&Dropbox_mApi.getSession().isLinked())
                 {
                     Dropbox_mApi.getSession().unlink();//logout
+                    //remove token from prefs
                     editor.remove(getResources().getString(R.string.prefs_dropbox_token));
                     editor.commit();//remember to commit
                     UpdateUI();
                 }
                     else
-                new LoginDropbox().execute();
+                    new LoginDropbox().execute();//open browser, ask user to login dropbox, and ask for access permission
             }
         });
     }
@@ -126,6 +124,14 @@ public class LoginActivity extends ActionBarActivity {
         return session;
     }
 
+    //show status of account button
+    private void UpdateUI() {
+        if (Dropbox_mApi != null && Dropbox_mApi.getSession().isLinked())
+            buttonLoginDropbox.setText(getResources().getText(R.string.unlink_dropbox));
+        else
+            buttonLoginDropbox.setText(getResources().getText(R.string.login_dropbox));
+
+    }
 
     //open browser, login, ask for permission
     private class LoginDropbox extends AsyncTask<Void,Void,Void>
@@ -162,16 +168,6 @@ public class LoginActivity extends ActionBarActivity {
             Log.i("DbAuthLog","is link "+Dropbox_mApi.getSession().isLinked() );
             UpdateUI();//work here
         }
-    }
-
-    //show status of account button
-    private void UpdateUI()
-    {
-        if (Dropbox_mApi!=null && Dropbox_mApi.getSession().isLinked())
-            buttonLoginDropbox.setText("Unlink Dropbox");
-        else
-            buttonLoginDropbox.setText("Login Dropbox");
-
     }
 
 }

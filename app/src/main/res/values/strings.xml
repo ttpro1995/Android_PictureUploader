@@ -9,6 +9,7 @@
     <string name="title_activity_login">LoginActivity</string>
 
     <string name="login_dropbox">Login Dropbox</string>
+    <string name="unlink_dropbox">Unlink Dropbox</string>
 
     <string name="prefs_dropbox_token">Dropbox_Access_Token</string>
     
