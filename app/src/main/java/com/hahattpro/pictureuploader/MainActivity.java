@@ -6,7 +6,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -16,6 +18,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
@@ -24,11 +27,16 @@ import com.dropbox.client2.session.AppKeyPair;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 import com.hahattpro.pictureuploader.StaticField.Dir;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 
 public class MainActivity extends ActionBarActivity {
+
+    //LOGtag
+    private String CAMERA_LOG_TAG ="CAMERA";
 
     DropboxAPI<AndroidAuthSession> Dropbox_mApi = null;
     SharedPreferences prefs;
@@ -38,21 +46,36 @@ public class MainActivity extends ActionBarActivity {
     ImageView imageView;
     Button buttonSelect;
     Button buttonUpload;
+    Button buttonCamera;
     TextView textStatus;
     // flag
     boolean error_Dropbox = false;
     private String LOG_TAG = MainActivity.class.getSimpleName();
     private String Dropbox_token = null;
+
     private int SELECT_PICTURE = 1;//select picture request code
+    private int CAPTURE_IMAGE= 2;//
+    private int CURRENT_REQUEST=0;
+
+    //DIR of image
+    String IMAGE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString();
+    int IMAGE_NUM=0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        Log.i(LOG_TAG,"Keep calm and meow on");
+
         imageView = (ImageView) findViewById(R.id.imageview1);
         buttonSelect = (Button) findViewById(R.id.button_select);
         buttonUpload = (Button) findViewById(R.id.button_upload);
+        buttonCamera = (Button) findViewById(R.id.button_camera);
+
+
         textStatus = (TextView) findViewById(R.id.textStatus);
         buttonUpload.setEnabled(false);
 
@@ -74,6 +97,13 @@ public class MainActivity extends ActionBarActivity {
                 new LoginDropboxAndUpload().execute();
             }
         });
+
+        buttonCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                takePhoto();
+            }
+        });
     }
 
 
@@ -83,6 +113,27 @@ public class MainActivity extends ActionBarActivity {
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(Intent.createChooser(intent, "Select Picture"), SELECT_PICTURE);
+    }
+
+    private void takePhoto(){
+        Intent intent = new Intent();
+        intent.setAction(MediaStore.ACTION_IMAGE_CAPTURE);
+
+
+        File image ;
+        image = new File(IMAGE_DIR+"/"+"image"+IMAGE_NUM+".JPG");
+        while (image.exists())
+        {
+            IMAGE_NUM++;
+            image = new File(IMAGE_DIR+"/"+"image"+IMAGE_NUM+".JPG");
+        }
+
+         pic_uri = Uri.fromFile(image);
+
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, pic_uri);
+
+        startActivityForResult(intent, CAPTURE_IMAGE);
+
     }
 
     //go to activity where you will login, get access token
@@ -152,6 +203,22 @@ public class MainActivity extends ActionBarActivity {
                 imageView.setImageURI(pic_uri);
                 if (pic_uri != null)
                     buttonUpload.setEnabled(true);
+                CURRENT_REQUEST = SELECT_PICTURE;
+            }
+        }
+
+        if (requestCode == CAPTURE_IMAGE) {
+            if (resultCode == RESULT_OK) {
+                // Image captured and saved to fileUri specified in the Intent
+                Log.i(CAMERA_LOG_TAG,"CAMERA Path = "+ pic_uri.getPath());
+                imageView.setImageURI(pic_uri);
+                if (pic_uri != null)
+                    buttonUpload.setEnabled(true);
+                CURRENT_REQUEST = CAPTURE_IMAGE;
+            } else if (resultCode == RESULT_CANCELED) {
+                // User cancelled the image capture
+            } else {
+                // Image capture failed, advise user
             }
         }
 
@@ -250,8 +317,9 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            try {
 
+            if (CURRENT_REQUEST == SELECT_PICTURE)
+            try {
                 //File file = new File(getRealPathFromURI(pic_uri));
                 InputStream is = getContentResolver().openInputStream(pic_uri);
 
@@ -274,8 +342,23 @@ public class MainActivity extends ActionBarActivity {
                 Log.e(LOG_TAG, "no picture is selected");
                 e.printStackTrace();
                 error_Dropbox = true;
-
             }
+
+
+            if (CURRENT_REQUEST == CAPTURE_IMAGE)
+                try{
+                    File myFile = new File(pic_uri.getPath());
+                    InputStream is = new FileInputStream(myFile);
+                    Dropbox_mApi.putFile(Dir.PICTURE_DIR +myFile.getName()
+                            , is
+                            , myFile.length()
+                            , null
+                            , null);
+                }
+                catch (FileNotFoundException er){er.printStackTrace();}
+                catch (DropboxException er){ er.printStackTrace();}
+
+
             return null;
         }
 
