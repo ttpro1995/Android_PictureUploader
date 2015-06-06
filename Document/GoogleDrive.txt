@@ -1,0 +1,88 @@
+If you use Genymotion, please install Google Service on it.
+Read more at https://goo.gl/QAYzDL
+1. get Client ID
+https://console.developers.google.com
+-Create new project
+-APIs & auth / APIs / Drive API -> set enable
+-APIs & auth /Credentials -> Create new Client ID
+You will need SHA1 hask key. Please take a look at "Windows Keytool utility to get the SHA1 fingerprint"
+
+
+2. Edit Manifest
+<uses-permission android:name="android.permission.GET_ACCOUNTS" />
+
+in the activity which use google drive, add
+         <activity android:name="YourActivityName" android:label="@string/YourActivityLabel"
+           android:icon="@drawable/app_icon" android:exported="true" >
+         <meta-data android:name="com.google.android.apps.drive.APP_ID" android:value="id=[ClientID(number part only)]" />
+         <intent-filter>
+         <action android:name="com.google.android.apps.drive.DRIVE_OPEN" />
+         <data android:mimeType="application/vnd.google-apps.drive-sdk.[ClientID(number part only)]" />
+         <data android:mimeType="image/png" />
+         <data android:mimeType="image/jpeg" />
+         <data android:mimeType="image/jpg" />
+         </intent-filter>
+     </activity>
+
+
+/*Example manifest
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.hahattpro.pictureuploader" >
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme" >
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/app_name" >
+            <meta-data android:name="com.google.android.apps.drive.APP_ID" android:value="id=477392009586" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="com.google.android.apps.drive.DRIVE_OPEN" />
+                <data android:mimeType="application/vnd.google-apps.drive-sdk.477392009586" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/jpg" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/title_activity_login"
+            android:parentActivityName=".MainActivity">
+            <meta-data android:name="com.google.android.apps.drive.APP_ID" android:value="id=477392009586" />
+            <intent-filter>
+                <action android:name="com.google.android.apps.drive.DRIVE_OPEN" />
+                <data android:mimeType="application/vnd.google-apps.drive-sdk.477392009586" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/jpg" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="com.dropbox.client2.android.AuthActivity"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|keyboard">
+            <intent-filter>
+                <!-- Change this to be db- followed by your app key -->
+                <data android:scheme="db-gg5bv3ify8ok6td" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>
+*/ end of manifest
+
+//This sample should run now

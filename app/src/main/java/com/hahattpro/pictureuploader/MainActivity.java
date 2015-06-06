@@ -1,8 +1,10 @@
 package com.hahattpro.pictureuploader;
 
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -24,19 +26,33 @@ import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
 import com.dropbox.client2.exception.DropboxException;
 import com.dropbox.client2.session.AppKeyPair;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.drive.Drive;
+import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveContents;
+import com.google.android.gms.drive.DriveFile;
+import com.google.android.gms.drive.DriveFolder;
+import com.google.android.gms.drive.MetadataChangeSet;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 import com.hahattpro.pictureuploader.StaticField.Dir;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 
 public class MainActivity extends ActionBarActivity {
 
     //LOGtag
     private String CAMERA_LOG_TAG ="CAMERA";
+    final String GOOGLEDRIVE_LOG_TAG ="Google Drive";
 
     DropboxAPI<AndroidAuthSession> Dropbox_mApi = null;
     SharedPreferences prefs;
@@ -56,6 +72,13 @@ public class MainActivity extends ActionBarActivity {
     private int SELECT_PICTURE = 1;//select picture request code
     private int CAPTURE_IMAGE= 2;//
     private int CURRENT_REQUEST=0;
+    final int GOOGLE_DRIVE_LOGIN_REQUEST_CODE = 100;
+
+
+    //google drive
+    GoogleApiClient mGoogleApiClient;
+    GoogleApiClient.OnConnectionFailedListener onConnectionFailedListener;
+    GoogleApiClient.ConnectionCallbacks connectionCallbacks;
 
     //DIR of image
     String IMAGE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString();
@@ -95,6 +118,8 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
                 new LoginDropboxAndUpload().execute();
+                new UploadGoogleDrive().execute();
+
             }
         });
 
@@ -104,6 +129,7 @@ public class MainActivity extends ActionBarActivity {
                 takePhoto();
             }
         });
+
     }
 
 
@@ -371,6 +397,166 @@ public class MainActivity extends ActionBarActivity {
                 textStatus.setText("Dropbox Error");
             else
                 textStatus.setText("Dropbox Upload Complete");
+
+
         }
+    }
+
+    ////////////////google drive ////////////
+
+
+    private class UploadGoogleDrive extends AsyncTask<Void,Void,Void> {
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+            LoginGoogleDrive();//start connecting to google api
+            try {//wait for it
+                while (mGoogleApiClient==null||!mGoogleApiClient.isConnected())
+                    Thread.sleep(100);
+            }
+            catch (InterruptedException e){}
+
+            //DriveFolder root = Drive.DriveApi.getRootFolder(mGoogleApiClient);
+            //DriveFile driveFile;
+
+
+
+            if (CURRENT_REQUEST == SELECT_PICTURE)
+                try {
+                    //File file = new File(getRealPathFromURI(pic_uri));
+                    InputStream is = getContentResolver().openInputStream(pic_uri);
+
+                    Log.i(LOG_TAG, "File name = " + getFileName(pic_uri));
+                    Log.i(LOG_TAG, "File size = " + getFileSize(pic_uri));
+
+                    SaveFileToDrive(getFileName(pic_uri),is);
+
+                } catch (FileNotFoundException e) {e.printStackTrace();}
+                catch (Exception e) {e.printStackTrace();}
+
+            if (CURRENT_REQUEST == CAPTURE_IMAGE)
+                try{
+                    File myFile = new File(pic_uri.getPath());
+                    InputStream is = new FileInputStream(myFile);
+                    SaveFileToDrive(myFile.getName(),is);
+                }
+                catch (FileNotFoundException er){er.printStackTrace();}
+                catch (Exception e){e.printStackTrace();}
+            return null;
+        }
+
+
+
+        /*
+        * Input: title, inputstream
+        * Upload to google drive
+        * */
+        private void SaveFileToDrive(final String title, InputStream is)
+        {
+            // Start by creating a new contents, and setting a callback.
+            Log.i(GOOGLEDRIVE_LOG_TAG, "Creating new contents.");
+
+            final InputStream inputStream = is;
+
+            Drive.DriveApi.newDriveContents(mGoogleApiClient)
+                    .setResultCallback(new ResultCallback<DriveApi.DriveContentsResult>() {
+
+                        @Override
+                        public void onResult(DriveApi.DriveContentsResult result) {
+                            // If the operation was not successful, we cannot do anything
+                            // and must
+                            // fail.
+                            if (!result.getStatus().isSuccess()) {
+                                Log.i(GOOGLEDRIVE_LOG_TAG, "Failed to create new contents.");
+                                return;
+                            }
+                            // Otherwise, we can write our data to the new contents.
+                            Log.i(GOOGLEDRIVE_LOG_TAG, "New contents created.");
+                            // Get an output stream for the contents.
+                            OutputStream outputStream = result.getDriveContents().getOutputStream();
+                            // Write the bitmap data from it.
+
+
+                            try {
+                               //TODO
+                                org.apache.commons.io.IOUtils.copy(inputStream,outputStream);
+                            } catch (IOException e1) {
+                                Log.i(GOOGLEDRIVE_LOG_TAG, "Unable to write file contents.");
+                            }
+                            // Create the initial metadata - MIME type and title.
+                            // Note that the user will be able to change the title later.
+                            MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
+                                    .setMimeType("image/jpeg").setTitle(title).build();
+
+                            // Create an intent for the file chooser, and start it.
+                            IntentSender intentSender = Drive.DriveApi
+                                    .newCreateFileActivityBuilder()
+                                    .setInitialMetadata(metadataChangeSet)
+                                    .setInitialDriveContents(result.getDriveContents())
+                                    .build(mGoogleApiClient);
+                            try {
+                                startIntentSenderForResult(
+                                        intentSender, 0, null, 0, 0, 0);
+                            } catch (IntentSender.SendIntentException e) {
+                                Log.i(GOOGLEDRIVE_LOG_TAG, "Failed to launch file chooser.");
+                            }
+
+                        }
+                    });
+        }
+
+
+    }
+
+    //Connect to google api (maybe it is run its own thread ?)
+    private void LoginGoogleDrive() {
+
+        //It is auto-gen constructor
+        onConnectionFailedListener = new GoogleApiClient.OnConnectionFailedListener() {
+            @Override
+            public void onConnectionFailed(ConnectionResult connectionResult) {
+                Log.i(GOOGLEDRIVE_LOG_TAG, "onConnectionFailed");
+                if (connectionResult.hasResolution()) {
+                    try {
+                        connectionResult.startResolutionForResult(MainActivity.this, GOOGLE_DRIVE_LOGIN_REQUEST_CODE);
+                    } catch (IntentSender.SendIntentException e) {
+                        // Unable to resolve, message user appropriately
+                        Log.i(GOOGLEDRIVE_LOG_TAG, "something wrong");
+                        e.printStackTrace();
+                    }
+                } else {
+                    GooglePlayServicesUtil.getErrorDialog(connectionResult.getErrorCode(),MainActivity.this, 0).show();
+                }
+            }
+        };
+
+        //It is auto-gen constructor
+        connectionCallbacks = new GoogleApiClient.ConnectionCallbacks() {
+            @Override
+            public void onConnected(Bundle bundle) {
+                Log.i(GOOGLEDRIVE_LOG_TAG, "onConnected call back");
+            }
+
+            @Override
+            public void onConnectionSuspended(int i) {
+                Log.i(GOOGLEDRIVE_LOG_TAG, "onConnectionSuspended call back");
+            }
+        };
+
+        //link google account (will appear account chooser)
+        mGoogleApiClient = new GoogleApiClient.Builder(MainActivity.this)
+                .addApi(Drive.API)
+                .addScope(Drive.SCOPE_FILE)
+                .addConnectionCallbacks(connectionCallbacks)
+                .addOnConnectionFailedListener(onConnectionFailedListener)
+                .build();
+        mGoogleApiClient.connect();
     }
 }

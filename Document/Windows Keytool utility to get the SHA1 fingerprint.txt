@@ -1,0 +1,54 @@
+1. go to C:\Program Files\Java\jdk1.8.0_45\bin
+
+in CMD
+(
+C:\Users\Thien>cd "C:\Program Files\Java\jdk1.8.0_45\bin"
+)
+
+2. Get debug.keystore path 
+"C:\Users\Thien\.android\debug.keystore"
+
+3. execute command in cmd 
+keytool -exportcert -alias androiddebugkey -keystore "C:\Users\Thien\.android\debug.keystore" -list -v
+with password: android
+
+in CMD
+(
+Microsoft Windows [Version 6.3.9600]
+(c) 2013 Microsoft Corporation. All rights reserved.
+
+C:\Users\Thien>cd "C:\Program Files\Java\jdk1.8.0_45\bin"
+
+C:\Program Files\Java\jdk1.8.0_45\bin>keytool -exportcert -alias androiddebugkey
+ -keystore "C:\Users\Thien\.android\debug.keystore" -list -v
+Enter keystore password:
+Alias name: androiddebugkey
+Creation date: Jun 4, 2015
+Entry type: PrivateKeyEntry
+Certificate chain length: 1
+Certificate[1]:
+Owner: CN=Android Debug, O=Android, C=US
+Issuer: CN=Android Debug, O=Android, C=US
+Serial number: 78525c36
+Valid from: Thu Jun 04 08:02:38 ICT 2015 until: Sat May 27 08:02:38 ICT 2045
+Certificate fingerprints:
+         MD5:  94:5E:03:F5:B0:58:12:C2:DA:09:59:DF:6F:07:4E:8E
+         SHA1: 1C:B8:7D:4E:EB:6B:63:DD:93:E2:34:8F:10:5F:6E:91:26:5E:B2:B1
+         SHA256: 75:79:E0:D0:71:17:36:7E:44:20:C9:2A:4D:15:F3:5D:B4:2A:4E:37:DA:
+F6:1C:4A:3E:DE:23:57:C9:20:3F:B5
+         Signature algorithm name: SHA256withRSA
+         Version: 3
+
+Extensions:
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 30 76 D1 11 25 E4 FA CD   6E 70 F3 ED F7 A3 7D C9  0v..%...np......
+0010: 95 23 B1 56                                        .#.V
+]
+]
+
+
+C:\Program Files\Java\jdk1.8.0_45\bin>
+)

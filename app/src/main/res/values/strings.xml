@@ -12,6 +12,7 @@
     <string name="unlink_dropbox">Unlink Dropbox</string>
 
     <string name="prefs_dropbox_token">Dropbox_Access_Token</string>
+    <string name="title_activity_splash_screen">SplashScreen</string>
     
 
 </resources>

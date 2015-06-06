@@ -1,5 +1,7 @@
 package com.hahattpro.pictureuploader;
 
+import android.content.Intent;
+import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -14,6 +16,10 @@ import android.widget.Button;
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
 import com.dropbox.client2.session.AppKeyPair;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.drive.Drive;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 
 
@@ -25,22 +31,26 @@ public class LoginActivity extends ActionBarActivity {
     private String LOG_TAG = LoginDropbox.class.getSimpleName();
     private String Dropbox_token = null;
 
+    final String GOOGLEDRIVE_LOG_TAG ="Google Drive";
+    final int GOOGLE_DRIVE_LOGIN_REQUEST_CODE = 100;
+    GoogleApiClient mGoogleApiClient;
+    GoogleApiClient.OnConnectionFailedListener onConnectionFailedListener;
+    GoogleApiClient.ConnectionCallbacks connectionCallbacks;
+    Button buttonLoginGoogleDrive;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         buttonLoginDropbox = (Button) findViewById(R.id.button_login_dropbox);
-
+        buttonLoginGoogleDrive = (Button) findViewById(R.id.button_login_GoogleDrive);
         //init prefs which is used to store access token
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         editor = prefs.edit();
 
         //get token
         Dropbox_token = prefs.getString(getResources().getString(R.string.prefs_dropbox_token), null);
-
-
-
-
 
         buttonLoginDropbox.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -57,6 +67,14 @@ public class LoginActivity extends ActionBarActivity {
                     new LoginDropbox().execute();//open browser, ask user to login dropbox, and ask for access permission
             }
         });
+
+        buttonLoginGoogleDrive.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LoginGoogleDrive();
+            }
+        });
+
     }
 
 
@@ -88,7 +106,14 @@ public class LoginActivity extends ActionBarActivity {
         }
     }
 
-
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == GOOGLE_DRIVE_LOGIN_REQUEST_CODE)
+            if (resultCode == RESULT_OK) {
+                mGoogleApiClient.connect();
+            }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -111,6 +136,8 @@ public class LoginActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+
 
     ///////>>>>>>HELPER FUNCTION<<<<<<///////////////////
 
@@ -169,5 +196,50 @@ public class LoginActivity extends ActionBarActivity {
             UpdateUI();//work here
         }
     }
+
+    ////////Google Drive Login//////////////
+    private void LoginGoogleDrive(){
+        onConnectionFailedListener = new GoogleApiClient.OnConnectionFailedListener() {
+            @Override
+            public void onConnectionFailed(ConnectionResult connectionResult) {
+                Log.i(GOOGLEDRIVE_LOG_TAG,"onConnectionFailed");
+                if (connectionResult.hasResolution()) {
+                    try {
+                        //For first login when user choose account
+                        connectionResult.startResolutionForResult(LoginActivity.this, GOOGLE_DRIVE_LOGIN_REQUEST_CODE);
+                    } catch (IntentSender.SendIntentException e) {
+                        // Unable to resolve, message user appropriately
+                        Log.i(GOOGLEDRIVE_LOG_TAG,"something wrong");
+                        e.printStackTrace();
+                    }
+                } else {
+                    GooglePlayServicesUtil.getErrorDialog(connectionResult.getErrorCode(), LoginActivity.this, 0).show();
+                }
+            }
+        };
+
+        connectionCallbacks = new GoogleApiClient.ConnectionCallbacks() {
+            @Override
+            public void onConnected(Bundle bundle) {
+                Log.i(GOOGLEDRIVE_LOG_TAG,"onConnected call back");
+            }
+
+            @Override
+            public void onConnectionSuspended(int i) {
+                Log.i(GOOGLEDRIVE_LOG_TAG,"onConnectionSuspended call back");
+            }
+        };
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Drive.API)
+                .addScope(Drive.SCOPE_FILE)
+                .addConnectionCallbacks(connectionCallbacks)
+                .addOnConnectionFailedListener(onConnectionFailedListener)
+                .build();
+        mGoogleApiClient.connect();
+
+
+    }
+
 
 }
