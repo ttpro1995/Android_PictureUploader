@@ -233,6 +233,7 @@ public class LoginActivity extends ActionBarActivity {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Drive.API)
                 .addScope(Drive.SCOPE_FILE)
+                .addScope(Drive.SCOPE_APPFOLDER)
                 .addConnectionCallbacks(connectionCallbacks)
                 .addOnConnectionFailedListener(onConnectionFailedListener)
                 .build();

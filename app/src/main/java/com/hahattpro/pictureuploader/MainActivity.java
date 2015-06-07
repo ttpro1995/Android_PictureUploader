@@ -496,6 +496,7 @@ public class MainActivity extends ActionBarActivity {
                                     .setMimeType("image/jpeg").setTitle(title).build();
 
                             // Create an intent for the file chooser, and start it.
+                            /*
                             IntentSender intentSender = Drive.DriveApi
                                     .newCreateFileActivityBuilder()
                                     .setInitialMetadata(metadataChangeSet)
@@ -507,11 +508,31 @@ public class MainActivity extends ActionBarActivity {
                             } catch (IntentSender.SendIntentException e) {
                                 Log.i(GOOGLEDRIVE_LOG_TAG, "Failed to launch file chooser.");
                             }
+                            */
+
+
+
+                            //Create a file at app folder
+                            DriveFolder root =Drive.DriveApi.getRootFolder(mGoogleApiClient);
+                            root.createFile(mGoogleApiClient,metadataChangeSet,result.getDriveContents()).setResultCallback(fileCallback);
+
 
                         }
                     });
         }
 
+        final private ResultCallback<DriveFolder.DriveFileResult> fileCallback = new
+                ResultCallback<DriveFolder.DriveFileResult>() {
+                    @Override
+                    public void onResult(DriveFolder.DriveFileResult result) {
+                        if (!result.getStatus().isSuccess()) {
+                            Log.e(GOOGLEDRIVE_LOG_TAG,"Error while trying to create the file");
+                            return;
+                        }
+                        Log.i(GOOGLEDRIVE_LOG_TAG,"Created a file in root Folder: "
+                                + result.getDriveFile().getDriveId());
+                    }
+                };
 
     }
 
@@ -554,6 +575,7 @@ public class MainActivity extends ActionBarActivity {
         mGoogleApiClient = new GoogleApiClient.Builder(MainActivity.this)
                 .addApi(Drive.API)
                 .addScope(Drive.SCOPE_FILE)
+                .addScope(Drive.SCOPE_APPFOLDER)
                 .addConnectionCallbacks(connectionCallbacks)
                 .addOnConnectionFailedListener(onConnectionFailedListener)
                 .build();
