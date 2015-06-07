@@ -35,6 +35,7 @@ import com.google.android.gms.drive.DriveApi;
 import com.google.android.gms.drive.DriveContents;
 import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveFolder;
+import com.google.android.gms.drive.DriveId;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 import com.hahattpro.pictureuploader.StaticField.Dir;
@@ -292,6 +293,9 @@ public class MainActivity extends ActionBarActivity {
 
     //set token to Dropbox_mApi
     private class LoginDropboxAndUpload extends AsyncTask<Void, Void, Void> {
+
+
+
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -407,6 +411,7 @@ public class MainActivity extends ActionBarActivity {
 
     private class UploadGoogleDrive extends AsyncTask<Void,Void,Void> {
 
+        DriveId mFolderDriveId = null;
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -415,7 +420,6 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected Void doInBackground(Void... params) {
-
             LoginGoogleDrive();//start connecting to google api
             try {//wait for it
                 while (mGoogleApiClient==null||!mGoogleApiClient.isConnected())
@@ -465,6 +469,19 @@ public class MainActivity extends ActionBarActivity {
 
             final InputStream inputStream = is;
 
+            //Create PictureUploader  Folder
+            MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
+                    .setTitle("PictureUploader").build();
+            Drive.DriveApi.getRootFolder(mGoogleApiClient).createFolder(
+                    mGoogleApiClient, changeSet).setResultCallback(callback);
+            try {//wait for creating new folder
+                while (mFolderDriveId == null)
+                    Thread.sleep(1000);
+            }
+            catch (InterruptedException e){e.printStackTrace();}
+
+
+
             Drive.DriveApi.newDriveContents(mGoogleApiClient)
                     .setResultCallback(new ResultCallback<DriveApi.DriveContentsResult>() {
 
@@ -485,15 +502,13 @@ public class MainActivity extends ActionBarActivity {
 
 
                             try {
-                               //TODO
-                                org.apache.commons.io.IOUtils.copy(inputStream,outputStream);
+                                //Copy from input stream to output stream
+                                org.apache.commons.io.IOUtils.copy(inputStream, outputStream);
                             } catch (IOException e1) {
                                 Log.i(GOOGLEDRIVE_LOG_TAG, "Unable to write file contents.");
                             }
                             // Create the initial metadata - MIME type and title.
                             // Note that the user will be able to change the title later.
-                            MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
-                                    .setMimeType("image/jpeg").setTitle(title).build();
 
                             // Create an intent for the file chooser, and start it.
                             /*
@@ -511,16 +526,18 @@ public class MainActivity extends ActionBarActivity {
                             */
 
 
-
-                            //Create a file at app folder
-                            DriveFolder root =Drive.DriveApi.getRootFolder(mGoogleApiClient);
-                            root.createFile(mGoogleApiClient,metadataChangeSet,result.getDriveContents()).setResultCallback(fileCallback);
+                            //Create a file at root folder
+                            MetadataChangeSet metadataChangeSet = new MetadataChangeSet.Builder()
+                                    .setMimeType("image/jpeg").setTitle(title).build();
+                            DriveFolder root = Drive.DriveApi.getFolder(mGoogleApiClient,mFolderDriveId);
+                            root.createFile(mGoogleApiClient, metadataChangeSet, result.getDriveContents()).setResultCallback(fileCallback);
 
 
                         }
                     });
         }
 
+        //create new file
         final private ResultCallback<DriveFolder.DriveFileResult> fileCallback = new
                 ResultCallback<DriveFolder.DriveFileResult>() {
                     @Override
@@ -529,11 +546,23 @@ public class MainActivity extends ActionBarActivity {
                             Log.e(GOOGLEDRIVE_LOG_TAG,"Error while trying to create the file");
                             return;
                         }
-                        Log.i(GOOGLEDRIVE_LOG_TAG,"Created a file in root Folder: "
+                        Log.i(GOOGLEDRIVE_LOG_TAG,"Created a file  "
                                 + result.getDriveFile().getDriveId());
                     }
                 };
 
+        //Create new folder
+        final ResultCallback<DriveFolder.DriveFolderResult> callback = new ResultCallback<DriveFolder.DriveFolderResult>() {
+            @Override
+            public void onResult(DriveFolder.DriveFolderResult result) {
+                if (!result.getStatus().isSuccess()) {
+                    Log.e(GOOGLEDRIVE_LOG_TAG,"Error while trying to create the folder");
+                    return;
+                }
+                Log.i(GOOGLEDRIVE_LOG_TAG, "Created a folder: " + result.getDriveFolder().getDriveId());
+                 mFolderDriveId = result.getDriveFolder().getDriveId();
+            }
+        };
     }
 
     //Connect to google api (maybe it is run its own thread ?)
