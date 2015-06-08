@@ -225,24 +225,37 @@ public class MainActivity extends ActionBarActivity {
 
         if (requestCode == SELECT_PICTURE) {
             //show picture you  selected
-            if (data != null) {
+            if (data != null) try {
                 pic_uri = data.getData();
                 imageView.setImageURI(pic_uri);
                 if (pic_uri != null)
                     buttonUpload.setEnabled(true);
                 CURRENT_REQUEST = SELECT_PICTURE;
+                InputStream is = getContentResolver().openInputStream(pic_uri);
+                Log.i(LOG_TAG, "File name = " + getFileName(pic_uri));
+                Log.i(LOG_TAG, "File size = " + getFileSize(pic_uri));
+                String FileName = getFileName(pic_uri);
+                long FileLength=getFileSize(pic_uri);
+
+                //TODO: pass FileName, FileLength,inputStream to upload method
+
             }
+            catch (Exception e){e.printStackTrace();}
         }
 
         if (requestCode == CAPTURE_IMAGE) {
-            if (resultCode == RESULT_OK) {
+            if (resultCode == RESULT_OK) try {
                 // Image captured and saved to fileUri specified in the Intent
                 Log.i(CAMERA_LOG_TAG,"CAMERA Path = "+ pic_uri.getPath());
                 imageView.setImageURI(pic_uri);
                 if (pic_uri != null)
                     buttonUpload.setEnabled(true);
                 CURRENT_REQUEST = CAPTURE_IMAGE;
-            } else if (resultCode == RESULT_CANCELED) {
+                File myFile = new File(pic_uri.getPath());
+                InputStream is = new FileInputStream(myFile);
+                //TODO: pass FileName, FileLength,inputStream to upload method
+            } catch (Exception e){e.printStackTrace();}
+            else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture
             } else {
                 // Image capture failed, advise user
@@ -624,3 +637,6 @@ public class MainActivity extends ActionBarActivity {
         mGoogleApiClient.connect();
     }
 }
+
+//TODO: FIX upload task so it take inputstream, file name, file length, DIR (folder )  to upload
+//TODO: move to new class
