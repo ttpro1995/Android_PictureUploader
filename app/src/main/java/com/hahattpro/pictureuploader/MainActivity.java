@@ -469,11 +469,20 @@ public class MainActivity extends ActionBarActivity {
 
             final InputStream inputStream = is;
 
-            //Create PictureUploader  Folder
+            //Get DriveID of old Drive folder is created
+            String tmp_driveid = prefs.getString(getResources().getString(R.string.prefs_googledrive_folder),null);
+            if (tmp_driveid==null)
+            mFolderDriveId =  null;
+            else
+            mFolderDriveId = DriveId.decodeFromString(tmp_driveid);
+
+            //Create PictureUploader  Folder if there are no PictureUploader folder
+            if (mFolderDriveId == null){
             MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
                     .setTitle("PictureUploader").build();
             Drive.DriveApi.getRootFolder(mGoogleApiClient).createFolder(
-                    mGoogleApiClient, changeSet).setResultCallback(callback);
+                    mGoogleApiClient, changeSet).setResultCallback(callback);}
+
             try {//wait for creating new folder
                 while (mFolderDriveId == null)
                     Thread.sleep(1000);
@@ -532,7 +541,6 @@ public class MainActivity extends ActionBarActivity {
                             DriveFolder root = Drive.DriveApi.getFolder(mGoogleApiClient,mFolderDriveId);
                             root.createFile(mGoogleApiClient, metadataChangeSet, result.getDriveContents()).setResultCallback(fileCallback);
 
-
                         }
                     });
         }
@@ -560,7 +568,12 @@ public class MainActivity extends ActionBarActivity {
                     return;
                 }
                 Log.i(GOOGLEDRIVE_LOG_TAG, "Created a folder: " + result.getDriveFolder().getDriveId());
+
+                //store new drive id into prefs
                  mFolderDriveId = result.getDriveFolder().getDriveId();
+                editor.clear();
+                editor.putString(getResources().getString(R.string.prefs_googledrive_folder), result.getDriveFolder().getDriveId().encodeToString());
+                editor.commit();
             }
         };
     }
