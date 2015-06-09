@@ -40,6 +40,8 @@ import com.google.android.gms.drive.MetadataChangeSet;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 import com.hahattpro.pictureuploader.StaticField.Dir;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -54,6 +56,7 @@ public class MainActivity extends ActionBarActivity {
     //LOGtag
     private String CAMERA_LOG_TAG ="CAMERA";
     final String GOOGLEDRIVE_LOG_TAG ="Google Drive";
+    final String DROPBOX_LOG_TAG ="Dropbox";
 
     DropboxAPI<AndroidAuthSession> Dropbox_mApi = null;
     SharedPreferences prefs;
@@ -85,6 +88,11 @@ public class MainActivity extends ActionBarActivity {
     String IMAGE_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).toString();
     int IMAGE_NUM=0;
 
+    //Prepare to upload
+    InputStream inputStream = null;
+    String File_Name=null;//name with extension
+    Long File_length=null;
+    String FOLDER = Dir.PICTURE_DIR;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -234,10 +242,13 @@ public class MainActivity extends ActionBarActivity {
                 InputStream is = getContentResolver().openInputStream(pic_uri);
                 Log.i(LOG_TAG, "File name = " + getFileName(pic_uri));
                 Log.i(LOG_TAG, "File size = " + getFileSize(pic_uri));
-                String FileName = getFileName(pic_uri);
-                long FileLength=getFileSize(pic_uri);
+
 
                 //TODO: pass FileName, FileLength,inputStream to upload method
+                File_Name = getFileName(pic_uri);
+                File_length = getFileSize(pic_uri);
+                inputStream = is;
+                FOLDER = Dir.PICTURE_DIR;
 
             }
             catch (Exception e){e.printStackTrace();}
@@ -253,7 +264,12 @@ public class MainActivity extends ActionBarActivity {
                 CURRENT_REQUEST = CAPTURE_IMAGE;
                 File myFile = new File(pic_uri.getPath());
                 InputStream is = new FileInputStream(myFile);
+
                 //TODO: pass FileName, FileLength,inputStream to upload method
+                File_Name = myFile.getName();
+                File_length = myFile.length();
+                inputStream = is;
+
             } catch (Exception e){e.printStackTrace();}
             else if (resultCode == RESULT_CANCELED) {
                 // User cancelled the image capture
@@ -313,6 +329,8 @@ public class MainActivity extends ActionBarActivity {
         protected void onPreExecute() {
             super.onPreExecute();
             textStatus.setText("Status: Uploading");
+            error_Dropbox=false;
+
         }
 
         @Override
@@ -330,10 +348,10 @@ public class MainActivity extends ActionBarActivity {
                 //dropbox not link because token is null
                 // Login at Login Activity
                 error_Dropbox = true;
-                Log.e(LOG_TAG, "Dropbox is not linked");
+                Log.e(DROPBOX_LOG_TAG, "Dropbox is not linked");
             }
             if (Dropbox_mApi.getSession().isLinked())
-                Log.i(LOG_TAG, "Dropbox is Link");
+                Log.i(DROPBOX_LOG_TAG, "Dropbox is Link");
             return null;
         }
 
@@ -350,6 +368,7 @@ public class MainActivity extends ActionBarActivity {
                     tmp = tmp + "Dropbox is not linked";
                 }
                 textStatus.setText(tmp);
+                Log.e(DROPBOX_LOG_TAG,tmp);
             }
 
         }
@@ -359,9 +378,15 @@ public class MainActivity extends ActionBarActivity {
     private class UploadPicture_Dropbox extends AsyncTask<Void, Void, Void> {
 
         @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            Log.i(DROPBOX_LOG_TAG,"Start uploading");
+        }
+
+        @Override
         protected Void doInBackground(Void... voids) {
 
-            if (CURRENT_REQUEST == SELECT_PICTURE)
+           /* if (CURRENT_REQUEST == SELECT_PICTURE)
             try {
                 //File file = new File(getRealPathFromURI(pic_uri));
                 InputStream is = getContentResolver().openInputStream(pic_uri);
@@ -400,8 +425,29 @@ public class MainActivity extends ActionBarActivity {
                 }
                 catch (FileNotFoundException er){er.printStackTrace();}
                 catch (DropboxException er){ er.printStackTrace();}
+*/
+            /////////////////////////
+            try {
+
+                CopyInputStream copyInputStream = new CopyInputStream(inputStream);//init copyInputStream
+                inputStream = copyInputStream.getCopy();//restore source inputstream
+
+                Log.d(DROPBOX_LOG_TAG,"File Name = "+File_Name);
+                Log.d(DROPBOX_LOG_TAG, "File length = " + File_length);
 
 
+                InputStream tmpis = copyInputStream.getCopy();//create tmp inputstream
+                Dropbox_mApi.putFile(File_Name // path in drop box
+                        , tmpis //input stream
+                        , File_length //file.length()
+                        , null
+                        , null);
+
+
+            }
+            catch (DropboxException e){ e.printStackTrace();
+            error_Dropbox = true;
+            }
             return null;
         }
 
@@ -440,11 +486,10 @@ public class MainActivity extends ActionBarActivity {
             }
             catch (InterruptedException e){}
 
-            //DriveFolder root = Drive.DriveApi.getRootFolder(mGoogleApiClient);
-            //DriveFile driveFile;
 
 
 
+/*
             if (CURRENT_REQUEST == SELECT_PICTURE)
                 try {
                     //File file = new File(getRealPathFromURI(pic_uri));
@@ -465,7 +510,14 @@ public class MainActivity extends ActionBarActivity {
                     SaveFileToDrive(myFile.getName(),is);
                 }
                 catch (FileNotFoundException er){er.printStackTrace();}
-                catch (Exception e){e.printStackTrace();}
+                catch (Exception e){e.printStackTrace();}*/
+
+            CopyInputStream copyInputStream = new CopyInputStream(inputStream);
+            inputStream = copyInputStream.getCopy();//restore source inputstream
+
+            InputStream tmpis = copyInputStream.getCopy();
+            SaveFileToDrive(File_Name,tmpis,FOLDER);
+
             return null;
         }
 
@@ -475,10 +527,12 @@ public class MainActivity extends ActionBarActivity {
         * Input: title, inputstream
         * Upload to google drive
         * */
-        private void SaveFileToDrive(final String title, InputStream is)
+        private void SaveFileToDrive(final String title, InputStream is, String FolderName)
         {
             // Start by creating a new contents, and setting a callback.
             Log.i(GOOGLEDRIVE_LOG_TAG, "Creating new contents.");
+
+
 
             final InputStream inputStream = is;
 
@@ -492,7 +546,7 @@ public class MainActivity extends ActionBarActivity {
             //Create PictureUploader  Folder if there are no PictureUploader folder
             if (mFolderDriveId == null){
             MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
-                    .setTitle("PictureUploader").build();
+                    .setTitle(FolderName).build();
             Drive.DriveApi.getRootFolder(mGoogleApiClient).createFolder(
                     mGoogleApiClient, changeSet).setResultCallback(callback);}
 
@@ -638,5 +692,6 @@ public class MainActivity extends ActionBarActivity {
     }
 }
 
-//TODO: FIX upload task so it take inputstream, file name, file length, DIR (folder )  to upload
+//TODOdone: FIX upload task so it take inputstream, file name, file length, FOLDER   to upload
 //TODO: move to new class
+//TODO: Separate into new class

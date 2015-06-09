@@ -15,9 +15,9 @@ public class CloudUploader {
     String APP_FOLDER_NAME;
 
     //Prepare for Upload
-  //  InputStream is;
- //   String File_Name;//name with extension
-  // Long File_length;
+    InputStream is;
+    String File_Name;//name with extension
+     Long File_length;
 
 
     //success flag

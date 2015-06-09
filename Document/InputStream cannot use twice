@@ -1,0 +1,2 @@
+InputStream cannot be use twice.
+Let use copyInputStream to make a copy for it.
