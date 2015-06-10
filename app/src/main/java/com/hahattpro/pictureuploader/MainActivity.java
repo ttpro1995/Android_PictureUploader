@@ -126,8 +126,12 @@ public class MainActivity extends ActionBarActivity {
         buttonUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new LoginDropboxAndUpload().execute();
-                new UploadGoogleDrive().execute();
+                //new LoginDropboxAndUpload().execute();
+                CloudUploader cloudUploader = new CloudUploader(MainActivity.this,MainActivity.this,Dir.PICTURE_DIR);
+                cloudUploader.UploadFileDropbox(File_Name, inputStream, File_length);
+
+                //new UploadGoogleDrive().execute();
+                cloudUploader.UploadFileGoogleDrive(File_Name,inputStream,File_length);
 
             }
         });
