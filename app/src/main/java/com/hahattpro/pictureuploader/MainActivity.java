@@ -1,12 +1,9 @@
 package com.hahattpro.pictureuploader;
 
 import android.content.Intent;
-import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
@@ -20,35 +17,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
-import com.dropbox.client2.exception.DropboxException;
-import com.dropbox.client2.session.AppKeyPair;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.drive.Drive;
-import com.google.android.gms.drive.DriveApi;
-import com.google.android.gms.drive.DriveContents;
-import com.google.android.gms.drive.DriveFile;
-import com.google.android.gms.drive.DriveFolder;
-import com.google.android.gms.drive.DriveId;
-import com.google.android.gms.drive.MetadataChangeSet;
+import com.hahattpro.pictureuploader.CloudUploaderPack.CloudUploader;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 import com.hahattpro.pictureuploader.StaticField.Dir;
 
-import org.apache.commons.io.IOUtils;
-
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -127,7 +106,7 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View view) {
                 //new LoginDropboxAndUpload().execute();
-                CloudUploader cloudUploader = new CloudUploader(MainActivity.this,MainActivity.this,Dir.PICTURE_DIR);
+                CloudUploader cloudUploader = new CloudUploader(MainActivity.this,Dir.PICTURE_DIR,AppIDandSecret.AppID_Dropbox,AppIDandSecret.Secret_Dropbox);
                 cloudUploader.UploadFileDropbox(File_Name, inputStream, File_length);
 
                 //new UploadGoogleDrive().execute();

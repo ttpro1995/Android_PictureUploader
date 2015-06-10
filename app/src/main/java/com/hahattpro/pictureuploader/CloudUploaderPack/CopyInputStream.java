@@ -1,4 +1,4 @@
-package com.hahattpro.pictureuploader;
+package com.hahattpro.pictureuploader.CloudUploaderPack;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

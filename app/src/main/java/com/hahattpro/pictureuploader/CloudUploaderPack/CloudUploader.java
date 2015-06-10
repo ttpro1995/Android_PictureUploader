@@ -1,15 +1,12 @@
-package com.hahattpro.pictureuploader;
+package com.hahattpro.pictureuploader.CloudUploaderPack;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.provider.OpenableColumns;
 import android.util.Log;
 
 import com.dropbox.client2.DropboxAPI;
@@ -25,7 +22,7 @@ import com.google.android.gms.drive.DriveApi;
 import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveId;
 import com.google.android.gms.drive.MetadataChangeSet;
-import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
+import com.hahattpro.pictureuploader.R;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,6 +60,8 @@ public class CloudUploader {
     //dropbox api
     DropboxAPI<AndroidAuthSession> Dropbox_mApi = null;
     String Dropbox_token=null;
+    String Dropbox_AppId=null;
+    String Dropbox_AppSecret=null;
 
 
     //google drive
@@ -71,12 +70,17 @@ public class CloudUploader {
     GoogleApiClient.ConnectionCallbacks connectionCallbacks;
     final int GOOGLE_DRIVE_LOGIN_REQUEST_CODE = 100;
 
+
+
     //-------------------------------
 
-    public CloudUploader(Context context, Activity activity, String APP_FOLDER_NAME) {
-        this.context = context;
+    public CloudUploader( Activity activity, String APP_FOLDER_NAME, String Dropbox_app_id, String Dropbox_app_secret) {
+
         this.APP_FOLDER_NAME = APP_FOLDER_NAME;
         this.activity = activity;
+        this.context = this.activity.getBaseContext();
+        this.Dropbox_AppId = Dropbox_app_id;
+        this.Dropbox_AppSecret = Dropbox_app_secret;
 
         prefs = PreferenceManager.getDefaultSharedPreferences(context);
         editor = prefs.edit();
@@ -104,7 +108,7 @@ public class CloudUploader {
     //build AndroidAuthSession
     private AndroidAuthSession buildSession() {
         // APP_KEY and APP_SECRET goes here
-        AppKeyPair appKeyPair = new AppKeyPair(AppIDandSecret.AppID_Dropbox, AppIDandSecret.Secret_Dropbox);
+        AppKeyPair appKeyPair = new AppKeyPair(Dropbox_AppId,Dropbox_AppSecret );
 
         AndroidAuthSession session = new AndroidAuthSession(appKeyPair, Dropbox_token);
 
