@@ -1,4 +1,4 @@
-package com.hahattpro.pictureuploader;
+package com.hahattpro.pictureuploader.CloudUploaderPack;
 
 import android.content.Intent;
 import android.content.IntentSender;
@@ -20,6 +20,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.drive.Drive;
+import com.hahattpro.pictureuploader.R;
 import com.hahattpro.pictureuploader.StaticField.AppIDandSecret;
 
 
@@ -38,6 +39,10 @@ public class LoginActivity extends ActionBarActivity {
     GoogleApiClient.ConnectionCallbacks connectionCallbacks;
     Button buttonLoginGoogleDrive;
 
+    //Dropbox appid, Dropbox appsecret
+    String Dropbox_AppId=null;
+    String Dropbox_AppSecret=null;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +53,11 @@ public class LoginActivity extends ActionBarActivity {
         //init prefs which is used to store access token
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         editor = prefs.edit();
+
+        //set dropbox appid, app secret from intent
+        Intent intent = getIntent();
+        Dropbox_AppId = intent.getExtras().getString(getResources().getString(R.string.extra_dropbox_app_id_request));
+        Dropbox_AppSecret = intent.getExtras().getString(getResources().getString(R.string.extra_dropbox_app_secret_request));
 
         //get token
         Dropbox_token = prefs.getString(getResources().getString(R.string.prefs_dropbox_token), null);
@@ -145,7 +155,7 @@ public class LoginActivity extends ActionBarActivity {
     private AndroidAuthSession buildSession()
     {
         // APP_KEY and APP_SECRET goes here
-        AppKeyPair appKeyPair= new AppKeyPair(AppIDandSecret.AppID_Dropbox,AppIDandSecret.Secret_Dropbox);
+        AppKeyPair appKeyPair= new AppKeyPair(Dropbox_AppId,Dropbox_AppId);
         AndroidAuthSession session = new AndroidAuthSession(appKeyPair,Dropbox_token);
 
         return session;

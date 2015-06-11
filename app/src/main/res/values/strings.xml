@@ -15,6 +15,8 @@
     <string name="prefs_googledrive_folder">Google_drive_folder_driveid</string>
 
     <string name="title_activity_splash_screen">SplashScreen</string>
-    
+
+    <string name="extra_dropbox_app_id_request">extra_dp_app_id</string>
+    <string name="extra_dropbox_app_secret_request">extra_dp_app_secret</string>
 
 </resources>

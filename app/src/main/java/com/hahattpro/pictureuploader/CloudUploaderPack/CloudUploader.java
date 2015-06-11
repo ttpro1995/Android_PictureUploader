@@ -2,6 +2,7 @@ package com.hahattpro.pictureuploader.CloudUploaderPack;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -60,8 +61,8 @@ public class CloudUploader {
     //dropbox api
     DropboxAPI<AndroidAuthSession> Dropbox_mApi = null;
     String Dropbox_token=null;
-    String Dropbox_AppId=null;
-    String Dropbox_AppSecret=null;
+    private String Dropbox_AppId=null;
+    private String Dropbox_AppSecret=null;
 
 
     //google drive
@@ -84,6 +85,19 @@ public class CloudUploader {
 
         prefs = PreferenceManager.getDefaultSharedPreferences(context);
         editor = prefs.edit();
+    }
+
+    /*
+    * start Login activity
+    * Allow user to login
+    * */
+    public void StartLoginActivity()
+    {
+        Intent intent = new Intent(context,LoginActivity.class);
+        intent.putExtra(context.getResources().getString(R.string.extra_dropbox_app_id_request),Dropbox_AppId);
+        intent.putExtra(context.getResources().getString(R.string.extra_dropbox_app_secret_request),Dropbox_AppSecret);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
     }
 
     public void UploadFileDropbox(String Name, InputStream is, Long Length ){
